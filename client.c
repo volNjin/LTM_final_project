@@ -21,31 +21,6 @@ char yourRole, oppRole; // 'X' or 'O'
 char **board;
 int gameOver = 1;
 
-int getCode(char *buffer)
-{
-    int code;
-    sscanf(buffer, "%d", &code);
-    return code;
-}
-
-char *getMessage(char *buffer, char *outMessage)
-{
-    sscanf(buffer, "%*d %[^\t\n]", outMessage);
-}
-
-void pressEnterToContinue()
-{
-    printf("Press Enter to continue");
-    getchar();
-}
-
-void clearBuffer()
-{
-    int c;
-    while (c != '\n' && c != EOF)
-        c = getchar();
-}
-
 void clearBoard()
 {
     for (int i = 0; i < SIZE; i++)

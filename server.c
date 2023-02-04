@@ -76,7 +76,11 @@ int check_win(char **board, int x, int y)
     int count;
     int i, j;
     char role = board[x][y];
-
+    char oppRole;
+    if (role == 'X')
+        oppRole = 'O';
+    else
+        oppRole = 'X';
     // check horizontal
     i = x - 1, j = y, count = 1;
     while (i >= 0 && board[i--][j] == role)
@@ -84,7 +88,7 @@ int check_win(char **board, int x, int y)
     i = x + 1;
     while (i < SIZE && board[i++][j] == role)
         count++;
-    if (count >= 5)
+    if (count >= 5 && board[i][j] != oppRole && board[i-7][j-1] != oppRole)
         return 1;
 
     // check vertical
@@ -94,7 +98,7 @@ int check_win(char **board, int x, int y)
     j = y + 1;
     while (j < SIZE && board[i][j++] == role)
         count++;
-    if (count >= 5)
+    if (count >= 5 && board[i][j-1] != oppRole && board[i][j-7] != oppRole)
         return 1;
 
     // check diagonal '\'
@@ -104,7 +108,7 @@ int check_win(char **board, int x, int y)
     i = x + 1, j = y + 1;
     while (i < SIZE && j < SIZE && board[i++][j++] == role)
         count++;
-    if (count >= 5)
+    if (count >= 5 && board[i-1][j-1] != oppRole && board[i-7][j-7] != oppRole)
         return 1;
 
     // check diagonal '/'
@@ -114,7 +118,7 @@ int check_win(char **board, int x, int y)
     i = x + 1, j = y - 1;
     while (i < SIZE && j >= 0 && board[i++][j--] == role)
         count++;
-    if (count >= 5)
+    if (count >= 5 && board[i-1][j+1] != oppRole && board[i-7][j+7] != oppRole)
         return 1;
 
     return 0;
@@ -194,7 +198,7 @@ void *thread_proc(void *arg)
 
             time_t start_time = time(NULL);
             while (time(NULL) - start_time < TIMED_OUT)
-            {   
+            {
                 if (opponentList[index] != -1)
                     break;
                 sleep(1);
@@ -238,6 +242,8 @@ void *thread_proc(void *arg)
             }
 
             boardList[index] = boardList[opp_index] = board;
+            srand(time(0));
+            int coin;
             if (index < opp_index)
             {
                 sprintf(find_resp, FIND_SUCCESS_X, usernameList[opp_index]);
@@ -258,7 +264,9 @@ void *thread_proc(void *arg)
             char role; // 'X' or 'O'
             char opp_move_resp[32];
             sscanf(buffer, "%*s%d%d", &x, &y);
-            sprintf(opp_move_resp, OPP_MOVE, x - 1, y - 1);
+            x--;
+            y--;
+            sprintf(opp_move_resp, OPP_MOVE, x, y);
 
             // Smaller index will be 'X
             if (index < opp_index)
@@ -270,6 +278,7 @@ void *thread_proc(void *arg)
             // check win
             if (check_win(boardList[index], x, y))
             {
+                printf("WIN\n");
                 char opp_won_resp[32];
                 sprintf(opp_won_resp, OPP_WON, x, y);
                 send(cfd, YOU_WON, strlen(YOU_WON), 0);
