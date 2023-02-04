@@ -88,7 +88,7 @@ int check_win(char **board, int x, int y)
     i = x + 1;
     while (i < SIZE && board[i++][j] == role)
         count++;
-    if (count >= 5 && board[i-1][j] != oppRole && board[i-7][j] != oppRole)
+    if (count >= 5 && !(board[i-1][j] == oppRole && board[i-7][j] == oppRole))
         return 1;
 
     // check vertical
@@ -98,7 +98,7 @@ int check_win(char **board, int x, int y)
     j = y + 1;
     while (j < SIZE && board[i][j++] == role)
         count++;
-    if (count >= 5 && board[i][j-1] != oppRole && board[i][j-7] != oppRole)
+    if (count >= 5 && !(board[i][j-1] == oppRole && board[i][j-7] == oppRole))
         return 1;
 
     // check diagonal '\'
@@ -108,7 +108,7 @@ int check_win(char **board, int x, int y)
     i = x + 1, j = y + 1;
     while (i < SIZE && j < SIZE && board[i++][j++] == role)
         count++;
-    if (count >= 5 && board[i-1][j-1] != oppRole && board[i-7][j-7] != oppRole)
+    if (count >= 5 && !(board[i-1][j-1] == oppRole && board[i-7][j-7] == oppRole))
         return 1;
 
     // check diagonal '/'
@@ -118,7 +118,7 @@ int check_win(char **board, int x, int y)
     i = x + 1, j = y - 1;
     while (i < SIZE && j >= 0 && board[i++][j--] == role)
         count++;
-    if (count >= 5 && board[i-1][j+1] != oppRole && board[i-7][j+7] != oppRole)
+    if (count >= 5 && !(board[i-1][j+1] == oppRole && board[i-7][j+7] == oppRole))
         return 1;
 
     return 0;
