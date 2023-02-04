@@ -10,7 +10,7 @@
 #include <arpa/inet.h>
 
 #include "checkinput.h"
-
+#include "clientHelper.h"
 #define SIZE 12
 
 int sockfd, Port;
@@ -37,11 +37,6 @@ void pressEnterToContinue()
 {
     printf("Press Enter to continue");
     getchar();
-}
-
-void clearScreen()
-{
-    printf("%c[2J%c[;H", (char)27, (char)27);
 }
 
 void clearBuffer()
@@ -74,11 +69,11 @@ void draw_board()
         printf("%-2d", i + 1);
         for (int j = 0; j < SIZE; j++)
         {
-            if(board[i][j]==yourRole)
+            if (board[i][j] == yourRole)
                 printf(" \033[0;33m%c\033[0m ", board[i][j]);
-            else if(board[i][j]==oppRole)
+            else if (board[i][j] == oppRole)
                 printf(" \033[0;31m%c\033[0m ", board[i][j]);
-            else 
+            else
                 printf(" %c ", board[i][j]);
             if (j != SIZE - 1)
                 printf("|");
@@ -98,44 +93,74 @@ void draw_board()
     }
 }
 
-void login()
+void registerUser()
 {
+    char buffer[64];
+    char message[64];
+    char password[21];
+    char confirmPassword[21];
     while (1)
     {
-        printf("Enter a username: ");
-        scanf("%20s", username);
-        clearBuffer();
-        char buffer[64], message[64];
-        sprintf(buffer, "LOGIN %s", username);
+        clearScreen();
+        printf("+-------Register-------+\n");
+        printf("Username: ");
+        fgets(username, 21, stdin);
+        username[strlen(username) - 1] = '\0';
 
-        send(sockfd, buffer, strlen(buffer), 0);
-        recv(sockfd, buffer, sizeof(buffer), 0);
-        getMessage(buffer, message);
-        printf("%s\n", message);
-        if (getCode(buffer) == 210)
-            break;
+        printf("Password: ");
+        getPassword(password);
+
+        printf("Confirm password: ");
+        getPassword(confirmPassword);
+        // check password match confirmPassword
+        if (strcmp(password, confirmPassword) == 0)
+        {
+            // register
+            sprintf(buffer, "REGISTER %s#%s", username, password);
+            send(sockfd, buffer, strlen(buffer), 0);
+            memset(buffer, 0, sizeof(buffer));
+            recv(sockfd, buffer, sizeof(buffer), 0);
+            getMessage(buffer, message);
+            printf("%s\n", message);
+            pressEnterToContinue();
+            if (getCode(buffer) == 201)
+                break;
+        }
+        else
+        {
+            printf("%s\n", "Password does not match");
+            pressEnterToContinue();
+        }
     }
 }
-
-int getMenuOption()
+void login()
 {
-    int option;
-    clearScreen();
-    printf("Logged in as %s\n", username);
-    printf("-------- MENU --------\n");
-    printf("1. New Game\n");
-    printf("2. Quit\n");
-    printf("\nSelect: ");
+    char buffer[64];
+    char message[64];
+    char password[21];
     while (1)
     {
-        option = getchar();
-        clearBuffer();
-        if (option >= '1' && option <= '2')
+        clearScreen();
+        printf("+-------Sign in------+\n");
+        printf("Username: ");
+        fgets(username, 21, stdin);
+        username[strlen(username) - 1] = '\0';
+
+        printf("Password: ");
+        getPassword(password);
+
+        // check username and password
+        sprintf(buffer, "LOGIN %s#%s", username, password);
+
+        send(sockfd, buffer, strlen(buffer), 0);
+        memset(buffer, 0, sizeof(buffer));
+        recv(sockfd, buffer, sizeof(buffer), 0);
+        getMessage(buffer, message);
+
+        printf("%s\n", message);
+        if (getCode(buffer) == 203)
             break;
-        else
-            printf("Invalid option, try again: ");
     }
-    return option;
 }
 
 // return respond code
@@ -261,7 +286,7 @@ void newGame()
             printf("Opponent disconnected\n");
             pressEnterToContinue();
             break;
-        case 342: //You won
+        case 342: // You won
             gameOver = 1;
             // re-draw board
             clearScreen();
@@ -271,7 +296,7 @@ void newGame()
             printf("You won!\n");
             pressEnterToContinue();
             break;
-        case 343: //Opponent won
+        case 343: // Opponent won
             gameOver = 1;
             getOpponentMove(buffer);
             // re-draw board
@@ -291,13 +316,102 @@ void newGame()
     }
 }
 
+int mainMenu()
+{
+    int option;
+    clearScreen();
+    printf("+-------Caro game server-------+\n");
+    printf("\t1. Login\n");
+    printf("\t2. Register\n");
+    printf("\t3. Quit\n");
+    printf("+------------------------------+\n");
+    printf("\nSelect: ");
+    while (1)
+    {
+        option = getchar();
+        clearBuffer();
+        if (option >= '1' && option <= '3')
+            break;
+        else
+            printf("Invalid option, try again: ");
+    }
+    return option;
+}
+
+int getMenuOption()
+{
+    int option;
+    clearScreen();
+    printf("Logged in as %s\n", username);
+    printf("-------- MENU --------\n");
+    printf("1. New Game\n");
+    printf("2. Quit\n");
+    printf("\nSelect: ");
+    while (1)
+    {
+        option = getchar();
+        clearBuffer();
+        if (option >= '1' && option <= '2')
+            break;
+        else
+            printf("Invalid option, try again: ");
+    }
+    return option;
+}
+
+void start()
+{
+    while (1)
+    {
+        int option;
+        option = mainMenu();
+        if (option == '1')
+        {
+            login();
+            while (1)
+            {
+                option = getMenuOption();
+                if (option == '2')
+                {
+                    memset(username, 0, sizeof(username));
+                    start();
+                }
+
+                newGame();
+            }
+        }
+        else if (option == '2')
+        {
+            registerUser();
+            login();
+            while (1)
+            {
+                option = getMenuOption();
+                if (option == '2')
+                {
+                    memset(username, 0, sizeof(username));
+                    start();
+                }
+
+                newGame();
+            }
+        }
+        else if (option == '3')
+        {
+            send(sockfd, "EXIT", 4, 0);
+            exit(0);
+            break;
+        }
+    }
+}
+
 int main(int argc, char **argv)
 {
 
     if (argc != 3)
     {
         printf("Syntax Error.\n");
-        printf("Syntax: ./{client exe file} IPAddress PortNumber\n");
+        printf("Syntax: ./client IPAddress PortNumber\n");
         return 0;
     }
     if (check_IP(argv[1]) == 0)
@@ -339,20 +453,8 @@ int main(int argc, char **argv)
     if (getCode(buffer) != 200)
         return -1;
     printf("Welcome To Caro Game\n");
+    pressEnterToContinue();
 
-    login();
-    int option;
-    while (1)
-    {
-        option = getMenuOption();
-        if (option == '2')
-        {
-            send(sockfd, "EXIT", 4, 0);
-            break;
-        }
-
-        newGame();
-    }
-
+    start();
     close(sockfd);
 }
