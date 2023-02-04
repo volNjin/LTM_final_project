@@ -157,7 +157,6 @@ void login()
         recv(sockfd, buffer, sizeof(buffer), 0);
         getMessage(buffer, message);
 
-        printf("%s\n", message);
         if (getCode(buffer) == 203)
             break;
     }
@@ -383,6 +382,7 @@ void start()
         else if (option == '2')
         {
             registerUser();
+
             login();
             while (1)
             {

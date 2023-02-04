@@ -13,7 +13,7 @@
 #include "checkinput.h"
 #include "serverHelper.h"
 #define SIZE 12
-#define TIMED_OUT 15
+#define TIMED_OUT 20
 
 int Port;
 int *client = NULL;
@@ -145,17 +145,15 @@ void *thread_proc(void *arg)
 
             if (isValid(username, NULL))
             {
-                memset(buffer, 0, sizeof(buffer));
-                sprintf(buffer, "%s", REGISTER_FAIL);
+                printf("%s", REGISTER_FAIL);
+                send(cfd, REGISTER_FAIL, sizeof(REGISTER_FAIL), 0);
             }
             else
             {
                 registerUser(username, password);
-                memset(buffer, 0, sizeof(buffer));
-                sprintf(buffer, "%s", REGISTER_SUCCESS);
+                printf("%s", REGISTER_SUCCESS);
+                send(cfd, REGISTER_SUCCESS, sizeof(REGISTER_SUCCESS), 0);
             }
-            printf("%s", buffer);
-            send(cfd, buffer, sizeof(buffer), 0);
         }
         else if (strncmp(buffer, "LOGIN ", 6) == 0)
         {
@@ -171,6 +169,7 @@ void *thread_proc(void *arg)
                         continue;
                     if (strcmp(username, usernameList[i]) == 0)
                     {
+                        printf("%s", LOGGED_IN_ACC);
                         send(cfd, LOGGED_IN_ACC, strlen(LOGGED_IN_ACC), 0);
                         isNameDuplicate = 1;
                         break;
@@ -180,16 +179,12 @@ void *thread_proc(void *arg)
                     continue;
                 usernameList[index] = (char *)realloc(usernameList[index], strlen(username) + 1);
                 strcpy(usernameList[index], username);
-                memset(buffer, 0, sizeof(buffer));
-                sprintf(buffer, "%s", LOGIN_SUCCESS);
+                send(cfd, LOGIN_SUCCESS, sizeof(LOGIN_SUCCESS), 0);
             }
             else
             {
-                memset(buffer, 0, sizeof(buffer));
-                sprintf(buffer, "%s", LOGIN_FAIL);
+                send(cfd, LOGIN_FAIL, sizeof(LOGIN_FAIL), 0);
             }
-            printf("%s", buffer);
-            send(cfd, buffer, sizeof(buffer), 0);
         }
         else if (strncmp(buffer, "FIND", 4) == 0)
         {
@@ -199,7 +194,7 @@ void *thread_proc(void *arg)
 
             time_t start_time = time(NULL);
             while (time(NULL) - start_time < TIMED_OUT)
-            {
+            {   
                 if (opponentList[index] != -1)
                     break;
                 sleep(1);
@@ -243,7 +238,7 @@ void *thread_proc(void *arg)
             }
 
             boardList[index] = boardList[opp_index] = board;
-            if (index < opponentList[index])
+            if (index < opp_index)
             {
                 sprintf(find_resp, FIND_SUCCESS_X, usernameList[opp_index]);
                 send(cfd, find_resp, strlen(find_resp), 0);
@@ -266,7 +261,7 @@ void *thread_proc(void *arg)
             sprintf(opp_move_resp, OPP_MOVE, x - 1, y - 1);
 
             // Smaller index will be 'X
-            if (index < opponentList[index])
+            if (index < opp_index)
                 role = 'X';
             else
                 role = 'O';
