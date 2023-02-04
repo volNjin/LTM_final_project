@@ -88,7 +88,7 @@ int check_win(char **board, int x, int y)
     i = x + 1;
     while (i < SIZE && board[i++][j] == role)
         count++;
-    if (count >= 5 && board[i][j] != oppRole && board[i-7][j-1] != oppRole)
+    if (count >= 5 && board[i-1][j] != oppRole && board[i-7][j] != oppRole)
         return 1;
 
     // check vertical
