@@ -34,15 +34,15 @@ char LOGGED_IN_ACC[] = "110 This account is already in use\n";
 char FIND_TIMED_OUT[] = "120 Cannot find any player\n";
 char REGISTER_SUCCESS[] = "201 Register success\n";
 char REGISTER_FAIL[] = "202 Register fail\n";
-char LOGIN_SUCCESS[] = "203 Login success\n";
-char LOGIN_FAIL[] = "204 Login fail\n";
+char LOGIN_SUCCESS[] = "211 Login success\n";
+char LOGIN_FAIL[] = "212 Login fail\n";
 char FIND_SUCCESS_X[64] = "220 %s - you play X\n"; // %s: opponent username
 char FIND_SUCCESS_O[64] = "221 %s - you play O\n"; // %s: opponent username
 char MOVE_SUCCESS[] = "230 Move success\n";
 char OPP_MOVE[32] = "330 %d %d Opponent move\n"; // %d %d: opponent move's coordinate
-char YOU_WON[] = "342 You won\n";
-char OPP_WON[] = "343 %d %d Opponent won\n"; // %d %d: opponent O move's coordinate
-char OPP_DISCONNECTED[] = "303 Opponent disconnected\n";
+char YOU_WON[] = "341 You won\n";
+char OPP_WON[] = "342 %d %d Opponent won\n"; // %d %d: opponent O move's coordinate
+char OPP_DISCONNECTED[] = "500 Opponent disconnected\n";
 
 void enqueue(int index)
 {

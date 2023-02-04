@@ -157,7 +157,7 @@ void login()
         recv(sockfd, buffer, sizeof(buffer), 0);
         getMessage(buffer, message);
 
-        if (getCode(buffer) == 203)
+        if (getCode(buffer) == 211)
             break;
     }
 }
@@ -280,12 +280,12 @@ void newGame()
         code = getCode(buffer);
         switch (code)
         {
-        case 303:
+        case 500:
             gameOver = 1;
             printf("Opponent disconnected\n");
             pressEnterToContinue();
             break;
-        case 342: // You won
+        case 341: // You won
             gameOver = 1;
             // re-draw board
             clearScreen();
@@ -295,7 +295,7 @@ void newGame()
             printf("You won!\n");
             pressEnterToContinue();
             break;
-        case 343: // Opponent won
+        case 342: // Opponent won
             gameOver = 1;
             getOpponentMove(buffer);
             // re-draw board
