@@ -5,7 +5,7 @@ LIBS =  -lm
 all: client server
 
 client: client.c checkinput.c
-	${CC} client.c checkinput.c -o client -pthread
+	${CC} client.c clientHelper.c checkinput.c -o client -pthread
 
 server: server.c serverHelper.c checkinput.c
 	${CC} server.c serverHelper.c checkinput.c -o server -pthread
