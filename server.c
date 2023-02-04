@@ -11,7 +11,7 @@
 #include <time.h>
 
 #include "checkinput.h"
-
+#include "serverHelper.h"
 #define SIZE 12
 #define TIMED_OUT 15
 
@@ -21,6 +21,7 @@ char **usernameList = NULL;
 int *opponentList = NULL; // store index of client[]
 char ***boardList = NULL;
 int count = 0;
+char *token = "#";
 
 pthread_mutex_t mutex;
 int *findingQueue = NULL; // store index of client[]
@@ -29,9 +30,12 @@ void enqueue(int index);
 int dequeue();
 
 char WELCOME[] = "200 Caro Game ready\n";
-char DUPLICATE_USERNAME[] = "110 This username is already in use\n";
-char LOGIN_SUCCESS[] = "210 Login success\n";
+char LOGGED_IN_ACC[] = "110 This account is already in use\n";
 char FIND_TIMED_OUT[] = "120 Cannot find any player\n";
+char REGISTER_SUCCESS[] = "201 Register success\n";
+char REGISTER_FAIL[] = "202 Register fail\n";
+char LOGIN_SUCCESS[] = "203 Login success\n";
+char LOGIN_FAIL[] = "204 Login fail\n";
 char FIND_SUCCESS_X[64] = "220 %s - you play X\n"; // %s: opponent username
 char FIND_SUCCESS_O[64] = "221 %s - you play O\n"; // %s: opponent username
 char MOVE_SUCCESS[] = "230 Move success\n";
@@ -133,28 +137,59 @@ void *thread_proc(void *arg)
         strcpy(buffer, rtrim(buffer));
         printf("%s\n", buffer);
 
-        if (strncmp(buffer, "LOGIN ", 6) == 0)
+        if (strncmp(buffer, "REGISTER ", 9) == 0)
         {
-            char *username = buffer + 6;
-            int isNameDuplicate = 0;
+            char *request = strtok(buffer, " ");
+            char *username = strtok(NULL, token);
+            char *password = strtok(NULL, token);
 
-            for (int i = 0; i < count; i++)
+            if (isValid(username, NULL))
             {
-                if (usernameList[i] == NULL)
-                    continue;
-                if (strcmp(username, usernameList[i]) == 0)
-                {
-                    send(cfd, DUPLICATE_USERNAME, strlen(DUPLICATE_USERNAME), 0);
-                    isNameDuplicate = 1;
-                    break;
-                }
+                memset(buffer, 0, sizeof(buffer));
+                sprintf(buffer, "%s", REGISTER_FAIL);
             }
-            if (isNameDuplicate)
-                continue;
-
-            send(cfd, LOGIN_SUCCESS, strlen(LOGIN_SUCCESS), 0);
-            usernameList[index] = (char *)realloc(usernameList[index], strlen(username) + 1);
-            strcpy(usernameList[index], username);
+            else
+            {
+                registerUser(username, password);
+                memset(buffer, 0, sizeof(buffer));
+                sprintf(buffer, "%s", REGISTER_SUCCESS);
+            }
+            printf("%s", buffer);
+            send(cfd, buffer, sizeof(buffer), 0);
+        }
+        else if (strncmp(buffer, "LOGIN ", 6) == 0)
+        {
+            char *request = strtok(buffer, " ");
+            char *username = strtok(NULL, token);
+            char *password = strtok(NULL, token);
+            if (isValid(username, password))
+            {
+                int isNameDuplicate = 0;
+                for (int i = 0; i < count; i++)
+                {
+                    if (usernameList[i] == NULL)
+                        continue;
+                    if (strcmp(username, usernameList[i]) == 0)
+                    {
+                        send(cfd, LOGGED_IN_ACC, strlen(LOGGED_IN_ACC), 0);
+                        isNameDuplicate = 1;
+                        break;
+                    }
+                }
+                if (isNameDuplicate)
+                    continue;
+                usernameList[index] = (char *)realloc(usernameList[index], strlen(username) + 1);
+                strcpy(usernameList[index], username);
+                memset(buffer, 0, sizeof(buffer));
+                sprintf(buffer, "%s", LOGIN_SUCCESS);
+            }
+            else
+            {
+                memset(buffer, 0, sizeof(buffer));
+                sprintf(buffer, "%s", LOGIN_FAIL);
+            }
+            printf("%s", buffer);
+            send(cfd, buffer, sizeof(buffer), 0);
         }
         else if (strncmp(buffer, "FIND", 4) == 0)
         {
@@ -309,7 +344,7 @@ int main(int argc, char **argv)
     if (argc != 2)
     {
         printf("Syntax Error.\n");
-        printf("Syntax: ./{server exe file} PortNumber\n");
+        printf("Syntax: ./server PortNumber\n");
         return 0;
     }
     if (check_port(argv[1]) == 0)
