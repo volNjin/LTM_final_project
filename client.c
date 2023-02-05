@@ -100,6 +100,8 @@ void registerUser()
             pressEnterToContinue();
             if (getCode(buffer) == 201)
                 break;
+            printf("%s\n", message);
+            pressEnterToContinue();
         }
         else
         {
@@ -134,6 +136,8 @@ void login()
 
         if (getCode(buffer) == 211)
             break;
+        printf("%s", message);
+        pressEnterToContinue();
     }
 }
 
