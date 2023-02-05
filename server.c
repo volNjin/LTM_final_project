@@ -13,11 +13,11 @@
 #include "checkinput.h"
 #include "serverHelper.h"
 #define SIZE 12
-#define TIMED_OUT 20
+#define TIMED_OUT 10
 
 int Port;
 int *client = NULL;
-char **usernameList = NULL;
+char **userList = NULL;
 int *opponentList = NULL; // store index of client[]
 char ***boardList = NULL;
 char *roleList = NULL;
@@ -104,8 +104,8 @@ int main(int argc, char **argv)
 
             client = (int *)realloc(client, (count + 1) * sizeof(int));
             client[count] = cfd;
-            usernameList = (char **)realloc(usernameList, (count + 1) * sizeof(char *));
-            usernameList[count] = NULL;
+            userList = (char **)realloc(userList, (count + 1) * sizeof(char *));
+            userList[count] = NULL;
             opponentList = (int *)realloc(opponentList, (count + 1) * sizeof(char *));
             opponentList[count] = -1;
             boardList = (char ***)realloc(boardList, (count + 1) * sizeof(char **));
@@ -227,11 +227,11 @@ int handleLogin(char *buffer, int cfd, int index)
         int isLogged = 0;
         for (int i = 0; i < count; i++)
         {
-            if (usernameList[i] == NULL)
+            if (userList[i] == NULL)
                 continue;
 
             // Check if account is logged in
-            if (strcmp(username, usernameList[i]) == 0)
+            if (strcmp(username, userList[i]) == 0)
             {
                 printf("%s", LOGGED_IN_ACC);
                 send(cfd, LOGGED_IN_ACC, strlen(LOGGED_IN_ACC), 0); // Send notice
@@ -243,8 +243,8 @@ int handleLogin(char *buffer, int cfd, int index)
             return 1;
 
         // Login success
-        usernameList[index] = (char *)realloc(usernameList[index], strlen(username) + 1); 
-        strcpy(usernameList[index], username);
+        userList[index] = (char *)realloc(userList[index], strlen(username) + 1); 
+        strcpy(userList[index], username);
         send(cfd, LOGIN_SUCCESS, sizeof(LOGIN_SUCCESS), 0);
         return 0;
     }
@@ -364,12 +364,12 @@ void *thread_proc(void *arg)
             // Send role to player
             if (roleList[index] == 'X')
             {
-                sprintf(find_resp, FIND_SUCCESS_X, usernameList[opp_index]);
+                sprintf(find_resp, FIND_SUCCESS_X, userList[opp_index]);
                 send(cfd, find_resp, strlen(find_resp), 0);
             }
             else
             {
-                sprintf(find_resp, FIND_SUCCESS_O, usernameList[opp_index]);
+                sprintf(find_resp, FIND_SUCCESS_O, userList[opp_index]);
                 send(cfd, find_resp, strlen(find_resp), 0);
             }
         }
@@ -416,8 +416,8 @@ void *thread_proc(void *arg)
     free(arg);
     close(client[index]);
     client[index] = -1;
-    free(usernameList[index]);
-    usernameList[index] = NULL;
+    free(userList[index]);
+    userList[index] = NULL;
     roleList[index] = NULL;
     if (opponentList[index] != -1)
     {

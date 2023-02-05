@@ -306,7 +306,7 @@ int checkCode(int code, char* buffer)
             gameOver = 1;
             // re-draw board
             clearScreen();
-            printf("You: %c\t\t%s: %c\n\n", yourRole, oppUsername, oppRole);
+            printf("You: \033[0;33m%c\033[0m\t\t%s: \033[0;36m%c\033[0m\n\n", yourRole, oppUsername, oppRole);
             draw_board();
 
             printf("You won!\n");
@@ -317,7 +317,7 @@ int checkCode(int code, char* buffer)
             getOpponentMove(buffer);
             // re-draw board
             clearScreen();
-            printf("You: %c\t\t%s: %c\n\n", yourRole, oppUsername, oppRole);
+            printf("You: \033[0;33m%c\033[0m\t\t%s: \033[0;36m%c\033[0m\n\n", yourRole, oppUsername, oppRole);
             draw_board();
 
             printf("%s won!\n", oppUsername);
@@ -356,7 +356,7 @@ void newGame()
     while (!gameOver)
     {
         clearScreen();
-        printf("You: %c\t\t%s: %c\n\n", yourRole, oppUsername, oppRole);
+        printf("You: \033[0;33m%c\033[0m\t\t%s: \033[0;36m%c\033[0m\n\n", yourRole, oppUsername, oppRole);
         draw_board();
 
         memset(buffer, 0, sizeof(buffer));
@@ -368,7 +368,7 @@ void newGame()
         else
         {
             yourTurn = 1;
-            printf("Opponent turn");
+            printf("\nOpponent turn\n");
         }
 
         recv(sockfd, buffer, sizeof(buffer), 0);
