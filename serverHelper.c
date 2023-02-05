@@ -63,3 +63,14 @@ void registerUser(char *username, char *password)
   fprintf(f, "%s#%s\n", username, password);
   fclose(f);
 }
+
+char *rtrim(char *s)
+{
+    char *back = s + strlen(s) - 1;
+    while (*back == ' ' || *back == '\n' || *back == '\r')
+    {
+        back--;
+    }
+    *(back + 1) = '\0';
+    return s;
+}
