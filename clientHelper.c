@@ -40,7 +40,9 @@ int getPassword(char pass[])
   int i = 0;
   // setCustomTerminal();
   while ((pass[i] = getchar()) != '\n')
+  {
     i++;
+  }
   pass[i] = '\0';
   // setDefaultTerminal();
   return i;
@@ -56,25 +58,25 @@ void clearScreen()
 
 int getCode(char *buffer)
 {
-    int code;
-    sscanf(buffer, "%d", &code);
-    return code;
+  int code;
+  sscanf(buffer, "%d", &code);
+  return code;
 }
 
 char *getMessage(char *buffer, char *outMessage)
 {
-    sscanf(buffer, "%*d %[^\t\n]", outMessage);
+  sscanf(buffer, "%*d %[^\t\n]", outMessage);
 }
 
 void pressEnterToContinue()
 {
-    printf("Press Enter to continue");
-    getchar();
+  printf("Press Enter to continue");
+  getchar();
 }
 
 void clearBuffer()
 {
-    int c;
-    while (c != '\n' && c != EOF)
-        c = getchar();
+  int c;
+  while (c != '\n' && c != EOF)
+    c = getchar();
 }

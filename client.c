@@ -13,8 +13,6 @@
 #include "clientHelper.h"
 #define SIZE 12
 
-
-
 int sockfd, Port;
 char *serverAddress;
 char username[21];
@@ -24,7 +22,72 @@ char **board;
 int gameOver = 1;
 
 void start();
-void startNewGame();
+void dialogLoggedIn();
+void clearBoard();
+void draw_board();
+void registerUser();
+void login();
+int findPlayer();
+void getOpponentMove(char *response);
+void getYourMove();
+int checkCode(int code, char* buffer);
+void newGame();
+int mainMenu();
+int getMenuOption();
+
+int main(int argc, char **argv)
+{
+    if (argc != 3)
+    {
+        printf("Syntax Error.\n");
+        printf("Syntax: ./client IPAddress PortNumber\n");
+        return 0;
+    }
+    if (check_IP(argv[1]) == 0)
+    {
+        printf("IP address invalid\n");
+        return 0;
+    }
+    if (check_port(argv[2]) == 0)
+    {
+        printf("Port invalid\n");
+        return 0;
+    }
+
+    serverAddress = argv[1];
+    Port = atoi(argv[2]);
+
+    sockfd = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+    struct sockaddr_in saddr;
+    saddr.sin_family = AF_INET;
+    saddr.sin_port = htons(Port);
+    saddr.sin_addr.s_addr = inet_addr(serverAddress);
+
+    // init board
+    board = (char **)calloc(SIZE, sizeof(char *));
+    for (int i = 0; i < SIZE; i++)
+    {
+        board[i] = (char *)calloc(SIZE, sizeof(char));
+    }
+
+    int conn = connect(sockfd, (struct sockaddr *)&saddr, sizeof(saddr));
+    if (conn < 0)
+    {
+        printf("Unable to connect the server\n");
+        return -1;
+    }
+
+    char buffer[64];
+    recv(sockfd, buffer, sizeof(buffer), 0);
+    if (getCode(buffer) != 200)
+        return -1;
+    clearScreen();
+    printf("Welcome To Caro Game\n");
+    pressEnterToContinue();
+
+    start();
+    close(sockfd);
+}
 
 void clearBoard()
 {
@@ -73,7 +136,6 @@ void draw_board()
     }
 }
 
-
 void registerUser()
 {
     char buffer[64];
@@ -116,6 +178,7 @@ void registerUser()
         }
     }
 }
+
 void login()
 {
     char buffer[64];
@@ -147,7 +210,7 @@ void login()
     }
 }
 
-// return respond code
+// find opponent
 int findPlayer()
 {
     char buffer[64], request[64], message[64];
@@ -327,7 +390,7 @@ int mainMenu()
     {
         option = getchar();
         clearBuffer();
-        if (option >= '1' && option <= '3')
+        if (option == '1' || option == '2' || option == '3')
             break;
         else
             printf("Invalid option, try again: ");
@@ -348,7 +411,7 @@ int getMenuOption()
     {
         option = getchar();
         clearBuffer();
-        if (option >= '1' && option <= '2')
+        if (option == '1' || option == '2')
             break;
         else
             printf("Invalid option, try again: ");
@@ -356,7 +419,7 @@ int getMenuOption()
     return option;
 }
 
-void startNewGame()
+void dialogLoggedIn()
 {
     login();
     while (1)
@@ -379,13 +442,13 @@ void start()
         option = mainMenu();
         if (option == '1')
         {
-            startNewGame();
+            dialogLoggedIn();
         }
         else if (option == '2')
         {
             registerUser();
 
-            startNewGame();
+            dialogLoggedIn();
         }
         else if (option == '3')
         {
@@ -394,58 +457,4 @@ void start()
             break;
         }
     }
-}
-
-int main(int argc, char **argv)
-{
-
-    if (argc != 3)
-    {
-        printf("Syntax Error.\n");
-        printf("Syntax: ./client IPAddress PortNumber\n");
-        return 0;
-    }
-    if (check_IP(argv[1]) == 0)
-    {
-        printf("IP address invalid\n");
-        return 0;
-    }
-    if (check_port(argv[2]) == 0)
-    {
-        printf("Port invalid\n");
-        return 0;
-    }
-
-    serverAddress = argv[1];
-    Port = atoi(argv[2]);
-
-    sockfd = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
-    struct sockaddr_in saddr;
-    saddr.sin_family = AF_INET;
-    saddr.sin_port = htons(Port);
-    saddr.sin_addr.s_addr = inet_addr(serverAddress);
-
-    // init board
-    board = (char **)calloc(SIZE, sizeof(char *));
-    for (int i = 0; i < SIZE; i++)
-    {
-        board[i] = (char *)calloc(SIZE, sizeof(char));
-    }
-
-    int conn = connect(sockfd, (struct sockaddr *)&saddr, sizeof(saddr));
-    if (conn < 0)
-    {
-        printf("Unable to connect the server\n");
-        return -1;
-    }
-
-    char buffer[64];
-    recv(sockfd, buffer, sizeof(buffer), 0);
-    if (getCode(buffer) != 200)
-        return -1;
-    printf("Welcome To Caro Game\n");
-    pressEnterToContinue();
-
-    start();
-    close(sockfd);
 }

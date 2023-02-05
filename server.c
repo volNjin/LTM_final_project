@@ -44,6 +44,82 @@ char YOU_WON[] = "341 You won\n";
 char OPP_WON[] = "342 %d %d Opponent won\n"; // %d %d: opponent O move's coordinate
 char OPP_DISCONNECTED[] = "500 Opponent disconnected\n";
 
+void enqueue(int index);
+int dequeue();
+int check_win(char **board, int x, int y);
+void handleRegister(char *buffer, int cfd);
+int handleLogin(char *buffer, int cfd, int index);
+void initBoard(char **board);
+void *thread_proc(void *arg);
+void *pair_player_proc();
+void signal_handler(int sig);
+
+int main(int argc, char **argv)
+{
+    if (argc != 2)
+    {
+        printf("Syntax Error.\n");
+        printf("Syntax: ./server PortNumber\n");
+        return 0;
+    }
+    if (check_port(argv[1]) == 0)
+    {
+        printf("Port invalid\n");
+        return 0;
+    }
+    Port = atoi(argv[1]);
+    signal(SIGINT, signal_handler);
+    pthread_mutex_init(&mutex, NULL);
+
+    // Create thread to pair player
+    pthread_t pair_tid;
+    pthread_create(&pair_tid, NULL, &pair_player_proc, NULL);
+
+    int sfd = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+    struct sockaddr_in saddr;
+    struct sockaddr caddr;
+    int clen = sizeof(caddr);
+    saddr.sin_family = AF_INET;
+    saddr.sin_port = htons(Port);
+    saddr.sin_addr.s_addr = 0;
+    if (bind(sfd, (struct sockaddr *)&saddr, sizeof(struct sockaddr)) == -1)
+    {
+        perror("Unable to bind\n");
+        exit(-3);
+    }
+    if (listen(sfd, 10) == -1)
+    {
+        perror("Listen error\n");
+        exit(-4);
+    }
+    printf("Caro Game server waiting for client on port %d\n", Port);
+    fflush(stdout);
+    while (1)
+    {
+        int cfd = accept(sfd, (struct sockaddr *)&caddr, &clen);
+        if (cfd >= 0)
+        {
+            send(cfd, WELCOME, strlen(WELCOME), 0);
+
+            client = (int *)realloc(client, (count + 1) * sizeof(int));
+            client[count] = cfd;
+            usernameList = (char **)realloc(usernameList, (count + 1) * sizeof(char *));
+            usernameList[count] = NULL;
+            opponentList = (int *)realloc(opponentList, (count + 1) * sizeof(char *));
+            opponentList[count] = -1;
+            boardList = (char ***)realloc(boardList, (count + 1) * sizeof(char **));
+            boardList[count] = NULL;
+            roleList = (char *)realloc(roleList, (count + 1) * sizeof(char));
+            roleList[count] = NULL;
+            pthread_t tid;
+            int *arg = (int *)calloc(1, sizeof(int));
+            *arg = count;
+            pthread_create(&tid, NULL, &thread_proc, arg);
+            count++;
+        }
+    }
+}
+
 void enqueue(int index)
 {
     findingQueue = (int *)realloc(findingQueue, (queue_size + 1) * sizeof(int));
@@ -180,6 +256,7 @@ void initBoard(char **board)
         }
     }
 }
+
 void *thread_proc(void *arg)
 {
     int index = *((int *)arg);
@@ -244,13 +321,15 @@ void *thread_proc(void *arg)
             opp_index = opponentList[index];
 
             char find_resp[64];
-            // Create the board
 
+            // Create the board
             char **board = (char **)calloc(SIZE, sizeof(char *));
 
             initBoard(board);
 
             boardList[index] = boardList[opp_index] = board;
+
+            // Decide players' role by random
             if (roleList[index] == NULL || roleList[opp_index] == NULL)
             {
                 srand(time(0));
@@ -266,6 +345,8 @@ void *thread_proc(void *arg)
                     roleList[opp_index] = 'X';
                 }
             }
+
+            // Send role to player
             if (roleList[index] == 'X')
             {
                 sprintf(find_resp, FIND_SUCCESS_X, usernameList[opp_index]);
@@ -279,9 +360,6 @@ void *thread_proc(void *arg)
         }
         else if (strncmp(buffer, "MOVE ", 5) == 0)
         {
-            if (opponentList[index] == -1)
-                continue; // bugfix: opponent dc before sending MOVE
-
             int x, y;
             char opp_move_resp[32];
             sscanf(buffer, "%*s%d%d", &x, &y);
@@ -309,6 +387,7 @@ void *thread_proc(void *arg)
                 continue;
             }
 
+            // Send move to oppenent
             send(client[opp_index], opp_move_resp, strlen(opp_move_resp), 0);
             send(cfd, MOVE_SUCCESS, strlen(MOVE_SUCCESS), 0);
         }
@@ -318,6 +397,7 @@ void *thread_proc(void *arg)
         }
     }
 
+    // Free memory
     free(arg);
     close(client[index]);
     client[index] = -1;
@@ -340,8 +420,8 @@ void *pair_player_proc()
     while (1)
     {
         if (queue_size >= 2)
-        { // reading queue_size dont need to lock since it can only increase - which is still correct
-            pthread_mutex_lock(&mutex);
+        {
+            pthread_mutex_lock(&mutex); 
             int player1 = dequeue();
             int player2 = dequeue();
             pthread_mutex_unlock(&mutex);
@@ -360,69 +440,4 @@ void signal_handler(int sig)
     client = NULL;
     count = 0;
     exit(0);
-}
-
-int main(int argc, char **argv)
-{
-    if (argc != 2)
-    {
-        printf("Syntax Error.\n");
-        printf("Syntax: ./server PortNumber\n");
-        return 0;
-    }
-    if (check_port(argv[1]) == 0)
-    {
-        printf("Port invalid\n");
-        return 0;
-    }
-    Port = atoi(argv[1]);
-    signal(SIGINT, signal_handler);
-    pthread_mutex_init(&mutex, NULL);
-
-    pthread_t pair_tid;
-    pthread_create(&pair_tid, NULL, &pair_player_proc, NULL);
-
-    int sfd = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
-    struct sockaddr_in saddr;
-    struct sockaddr caddr;
-    int clen = sizeof(caddr);
-    saddr.sin_family = AF_INET;
-    saddr.sin_port = htons(Port);
-    saddr.sin_addr.s_addr = 0;
-    if (bind(sfd, (struct sockaddr *)&saddr, sizeof(struct sockaddr)) == -1)
-    {
-        perror("Unable to bind\n");
-        exit(-3);
-    }
-    if (listen(sfd, 10) == -1)
-    {
-        perror("Listen error\n");
-        exit(-4);
-    }
-    printf("Caro Game server waiting for client on port %d\n", Port);
-    fflush(stdout);
-    while (1)
-    {
-        int cfd = accept(sfd, (struct sockaddr *)&caddr, &clen);
-        if (cfd >= 0)
-        {
-            send(cfd, WELCOME, strlen(WELCOME), 0);
-
-            client = (int *)realloc(client, (count + 1) * sizeof(int));
-            client[count] = cfd;
-            usernameList = (char **)realloc(usernameList, (count + 1) * sizeof(char *));
-            usernameList[count] = NULL;
-            opponentList = (int *)realloc(opponentList, (count + 1) * sizeof(char *));
-            opponentList[count] = -1;
-            boardList = (char ***)realloc(boardList, (count + 1) * sizeof(char **));
-            boardList[count] = NULL;
-            roleList = (char *)realloc(roleList, (count + 1) * sizeof(char));
-            roleList[count] = NULL;
-            pthread_t tid;
-            int *arg = (int *)calloc(1, sizeof(int));
-            *arg = count;
-            pthread_create(&tid, NULL, &thread_proc, arg);
-            count++;
-        }
-    }
 }
