@@ -168,8 +168,6 @@ void registerUser()
             pressEnterToContinue();
             if (getCode(buffer) == 201)
                 break;
-            printf("%s\n", message);
-            pressEnterToContinue();
         }
         else
         {
@@ -207,6 +205,7 @@ void login()
             break;
         printf("%s", message);
         pressEnterToContinue();
+        start();
     }
 }
 
@@ -451,7 +450,7 @@ void start()
         else if (option == '2')
         {
             registerUser();
-
+            start();
             dialogLoggedIn();
         }
         else if (option == '3')
