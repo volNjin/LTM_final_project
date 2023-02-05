@@ -60,16 +60,6 @@ int dequeue()
     return top;
 }
 
-char *rtrim(char *s)
-{
-    char *back = s + strlen(s) - 1;
-    while (*back == ' ' || *back == '\n' || *back == '\r')
-    {
-        back--;
-    }
-    *(back + 1) = '\0';
-    return s;
-}
 
 int check_win(char **board, int x, int y)
 {
@@ -124,6 +114,73 @@ int check_win(char **board, int x, int y)
     return 0;
 }
 
+void handleRegister(char* buffer, int cfd)
+{
+    char *request = strtok(buffer, " ");
+    char *username = strtok(NULL, token);
+    char *password = strtok(NULL, token);
+
+    if (isValid(username, NULL))
+    {
+        printf("%s", REGISTER_FAIL);
+        send(cfd, REGISTER_FAIL, sizeof(REGISTER_FAIL), 0);
+    }
+    else
+    {
+        registerUser(username, password);
+        printf("%s", REGISTER_SUCCESS);
+        send(cfd, REGISTER_SUCCESS, sizeof(REGISTER_SUCCESS), 0);
+    }
+}
+
+int handleLogin(char* buffer, int cfd, int index)
+{
+    char *request = strtok(buffer, " ");
+    char *username = strtok(NULL, token);
+    char *password = strtok(NULL, token);
+    if (isValid(username, password))
+    {
+        int isNameDuplicate = 0;
+        for (int i = 0; i < count; i++)
+        {
+            if (usernameList[i] == NULL)
+                continue;
+            if (strcmp(username, usernameList[i]) == 0)
+            {
+                printf("%s", LOGGED_IN_ACC);
+                send(cfd, LOGGED_IN_ACC, strlen(LOGGED_IN_ACC), 0);
+                isNameDuplicate = 1;
+                break;
+            }
+        }
+        if (isNameDuplicate)
+            return 1;
+        usernameList[index] = (char *)realloc(usernameList[index], strlen(username) + 1);
+        strcpy(usernameList[index], username);
+        send(cfd, LOGIN_SUCCESS, sizeof(LOGIN_SUCCESS), 0);
+        return 0;
+    }
+    else
+    {
+        send(cfd, LOGIN_FAIL, sizeof(LOGIN_FAIL), 0);
+    }
+}
+
+void initBoard(char** board)
+{
+    for (int i = 0; i < SIZE; i++)
+    {
+        board[i] = (char *)calloc(SIZE, sizeof(char));
+    }
+
+    for (int i = 0; i < SIZE; i++)
+    {
+        for (int j = 0; j < SIZE; j++)
+        {
+            board[i][j] = ' ';
+        }
+    }
+}
 void *thread_proc(void *arg)
 {
     int index = *((int *)arg);
@@ -143,51 +200,14 @@ void *thread_proc(void *arg)
 
         if (strncmp(buffer, "REGISTER ", 9) == 0)
         {
-            char *request = strtok(buffer, " ");
-            char *username = strtok(NULL, token);
-            char *password = strtok(NULL, token);
-
-            if (isValid(username, NULL))
-            {
-                printf("%s", REGISTER_FAIL);
-                send(cfd, REGISTER_FAIL, sizeof(REGISTER_FAIL), 0);
-            }
-            else
-            {
-                registerUser(username, password);
-                printf("%s", REGISTER_SUCCESS);
-                send(cfd, REGISTER_SUCCESS, sizeof(REGISTER_SUCCESS), 0);
-            }
+            handleRegister(buffer,cfd);
         }
         else if (strncmp(buffer, "LOGIN ", 6) == 0)
         {
-            char *request = strtok(buffer, " ");
-            char *username = strtok(NULL, token);
-            char *password = strtok(NULL, token);
-            if (isValid(username, password))
+            int tmp = handleLogin(buffer, cfd, index);
+            if(tmp == 1)
             {
-                int isNameDuplicate = 0;
-                for (int i = 0; i < count; i++)
-                {
-                    if (usernameList[i] == NULL)
-                        continue;
-                    if (strcmp(username, usernameList[i]) == 0)
-                    {
-                        printf("%s", LOGGED_IN_ACC);
-                        send(cfd, LOGGED_IN_ACC, strlen(LOGGED_IN_ACC), 0);
-                        isNameDuplicate = 1;
-                        break;
-                    }
-                }
-                if (isNameDuplicate)
-                    continue;
-                usernameList[index] = (char *)realloc(usernameList[index], strlen(username) + 1);
-                strcpy(usernameList[index], username);
-                send(cfd, LOGIN_SUCCESS, sizeof(LOGIN_SUCCESS), 0);
-            }
-            else
-            {
-                send(cfd, LOGIN_FAIL, sizeof(LOGIN_FAIL), 0);
+                continue;
             }
         }
         else if (strncmp(buffer, "FIND", 4) == 0)
@@ -228,18 +248,8 @@ void *thread_proc(void *arg)
             // Create the board
 
             char **board = (char **)calloc(SIZE, sizeof(char *));
-            for (int i = 0; i < SIZE; i++)
-            {
-                board[i] = (char *)calloc(SIZE, sizeof(char));
-            }
 
-            for (int i = 0; i < SIZE; i++)
-            {
-                for (int j = 0; j < SIZE; j++)
-                {
-                    board[i][j] = ' ';
-                }
-            }
+            initBoard(board);
 
             boardList[index] = boardList[opp_index] = board;
             if(roleList[index] == NULL && roleList[opp_index] == NULL){

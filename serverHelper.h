@@ -8,3 +8,5 @@ int isValid(char* username, char* password);
 Đăng kí user mới
 */
 void registerUser(char* username, char* password);
+
+char *rtrim(char *s);
