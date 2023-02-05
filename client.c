@@ -13,6 +13,8 @@
 #include "clientHelper.h"
 #define SIZE 12
 
+
+
 int sockfd, Port;
 char *serverAddress;
 char username[21];
@@ -20,6 +22,9 @@ char oppUsername[21];
 char yourRole, oppRole; // 'X' or 'O'
 char **board;
 int gameOver = 1;
+
+void start();
+void startNewGame();
 
 void clearBoard()
 {
@@ -67,6 +72,7 @@ void draw_board()
         printf("\n");
     }
 }
+
 
 void registerUser()
 {
@@ -202,6 +208,63 @@ void getYourMove()
     }
 }
 
+int checkCode(int code, char* buffer)
+{
+    switch(code)
+    {
+        // return -1 means break
+        case 120:
+            printf("TIMED OUT: Cannot find any player\n");
+            pressEnterToContinue();
+            return -1;
+        // return 1 means yourReturn = 1
+        case 220:
+            yourRole = 'X';
+            oppRole = 'O';
+            printf("Player found: %s, you are X\n", oppUsername);
+            return 1;
+        // return 0 means yourReturn = 0
+        case 221:
+            yourRole = 'O';
+            oppRole = 'X';
+            printf("Player found: %s, you are O\n", oppUsername);
+            return 0;
+        // return -2 means nothing
+        case 500:
+            gameOver = 1;
+            printf("Opponent disconnected\n");
+            pressEnterToContinue();
+            return -2;
+        case 341: // You won
+            gameOver = 1;
+            // re-draw board
+            clearScreen();
+            printf("You: %c\t\t%s: %c\n\n", yourRole, oppUsername, oppRole);
+            draw_board();
+
+            printf("You won!\n");
+            pressEnterToContinue();
+            return -2;
+        case 342: // Opponent won
+            gameOver = 1;
+            getOpponentMove(buffer);
+            // re-draw board
+            clearScreen();
+            printf("You: %c\t\t%s: %c\n\n", yourRole, oppUsername, oppRole);
+            draw_board();
+
+            printf("%s won!\n", oppUsername);
+            pressEnterToContinue();
+            return -2;
+        case 330:
+            getOpponentMove(buffer);
+            return -2;
+        case 230:
+            return -2;
+        
+    }
+}
+
 void newGame()
 {
     int code;
@@ -209,26 +272,15 @@ void newGame()
     int yourTurn;
 
     code = findPlayer();
-    if (code == 120)
+    int tmp = checkCode(code, buffer);
+    if(tmp == -1)
     {
-        printf("TIMED OUT: Cannot find any player\n");
-        pressEnterToContinue();
         return;
-    }
-    if (code == 220)
+    } else
     {
-        yourRole = 'X';
-        oppRole = 'O';
-        yourTurn = 1;
-        printf("Player found: %s, you are X\n", oppUsername);
+        yourTurn = tmp;
     }
-    else if (code == 221)
-    {
-        yourRole = 'O';
-        oppRole = 'X';
-        yourTurn = 0;
-        printf("Player found: %s, you are O\n", oppUsername);
-    }
+
     printf("\n");
     pressEnterToContinue();
 
@@ -253,40 +305,7 @@ void newGame()
 
         recv(sockfd, buffer, sizeof(buffer), 0);
         code = getCode(buffer);
-        switch (code)
-        {
-        case 500:
-            gameOver = 1;
-            printf("Opponent disconnected\n");
-            pressEnterToContinue();
-            break;
-        case 341: // You won
-            gameOver = 1;
-            // re-draw board
-            clearScreen();
-            printf("You: %c\t\t%s: %c\n\n", yourRole, oppUsername, oppRole);
-            draw_board();
-
-            printf("You won!\n");
-            pressEnterToContinue();
-            break;
-        case 342: // Opponent won
-            gameOver = 1;
-            getOpponentMove(buffer);
-            // re-draw board
-            clearScreen();
-            printf("You: %c\t\t%s: %c\n\n", yourRole, oppUsername, oppRole);
-            draw_board();
-
-            printf("%s won!\n", oppUsername);
-            pressEnterToContinue();
-            break;
-        case 330:
-            getOpponentMove(buffer);
-            break;
-        case 230:
-            break;
-        }
+        checkCode(code, buffer);
     }
 }
 
@@ -333,6 +352,21 @@ int getMenuOption()
     return option;
 }
 
+void startNewGame()
+{
+    login();
+    while (1)
+    {
+        int option = getMenuOption();
+        if (option == '2')
+        {
+            memset(username, 0, sizeof(username));
+            start();
+        }
+
+        newGame();
+    }
+}
 void start()
 {
     while (1)
@@ -341,35 +375,13 @@ void start()
         option = mainMenu();
         if (option == '1')
         {
-            login();
-            while (1)
-            {
-                option = getMenuOption();
-                if (option == '2')
-                {
-                    memset(username, 0, sizeof(username));
-                    start();
-                }
-
-                newGame();
-            }
+            startNewGame();
         }
         else if (option == '2')
         {
             registerUser();
 
-            login();
-            while (1)
-            {
-                option = getMenuOption();
-                if (option == '2')
-                {
-                    memset(username, 0, sizeof(username));
-                    start();
-                }
-
-                newGame();
-            }
+            startNewGame();
         }
         else if (option == '3')
         {
