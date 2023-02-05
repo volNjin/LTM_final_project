@@ -20,9 +20,9 @@ int *client = NULL;
 char **usernameList = NULL;
 int *opponentList = NULL; // store index of client[]
 char ***boardList = NULL;
+char *roleList = NULL;
 int count = 0;
 char *token = "#";
-
 pthread_mutex_t mutex;
 int *findingQueue = NULL; // store index of client[]
 int queue_size = 0;
@@ -88,7 +88,7 @@ int check_win(char **board, int x, int y)
     i = x + 1;
     while (i < SIZE && board[i++][j] == role)
         count++;
-    if (count >= 5 && !(board[i-1][j] == oppRole && board[i-7][j] == oppRole))
+    if (count >= 5 && !((i >= SIZE) || (i-7 < 0) || (board[i-1][j] == oppRole && board[i-7][j] == oppRole)))
         return 1;
 
     // check vertical
@@ -98,7 +98,7 @@ int check_win(char **board, int x, int y)
     j = y + 1;
     while (j < SIZE && board[i][j++] == role)
         count++;
-    if (count >= 5 && !(board[i][j-1] == oppRole && board[i][j-7] == oppRole))
+    if (count >= 5 && !((j >= SIZE) || (j-7 < 0) || (board[i][j-1] == oppRole && board[i][j-7] == oppRole)))
         return 1;
 
     // check diagonal '\'
@@ -108,7 +108,7 @@ int check_win(char **board, int x, int y)
     i = x + 1, j = y + 1;
     while (i < SIZE && j < SIZE && board[i++][j++] == role)
         count++;
-    if (count >= 5 && !(board[i-1][j-1] == oppRole && board[i-7][j-7] == oppRole))
+    if (count >= 5 && !((i >= SIZE) || (i-7 < 0) || (j >= SIZE) || (j-7 < 0) || (board[i-1][j-1] == oppRole && board[i-7][j-7] == oppRole)))
         return 1;
 
     // check diagonal '/'
@@ -118,7 +118,7 @@ int check_win(char **board, int x, int y)
     i = x + 1, j = y - 1;
     while (i < SIZE && j >= 0 && board[i++][j--] == role)
         count++;
-    if (count >= 5 && !(board[i-1][j+1] == oppRole && board[i-7][j+7] == oppRole))
+    if (count >= 5 && !((i >= SIZE) || (i-7 < 0) || (j+7 >= SIZE) || (j < 0) || (board[i-1][j+1] == oppRole && board[i-7][j+7] == oppRole)))
         return 1;
 
     return 0;
@@ -242,9 +242,19 @@ void *thread_proc(void *arg)
             }
 
             boardList[index] = boardList[opp_index] = board;
-            srand(time(0));
-            int coin;
-            if (index < opp_index)
+            if(roleList[index] == NULL && roleList[opp_index] == NULL){
+                srand(time(0));
+                int coin = rand()%2;
+                if(coin == 0){
+                    roleList[index] = 'X';
+                    roleList[opp_index] = 'O';
+                }
+                else {
+                    roleList[index] = 'O';
+                    roleList[opp_index] = 'X';
+                }
+            }
+            if (roleList[index] == 'X')
             {
                 sprintf(find_resp, FIND_SUCCESS_X, usernameList[opp_index]);
                 send(cfd, find_resp, strlen(find_resp), 0);
@@ -261,19 +271,13 @@ void *thread_proc(void *arg)
                 continue; // bugfix: opponent dc before sending MOVE
 
             int x, y;
-            char role; // 'X' or 'O'
             char opp_move_resp[32];
             sscanf(buffer, "%*s%d%d", &x, &y);
             x--;
             y--;
             sprintf(opp_move_resp, OPP_MOVE, x, y);
 
-            // Smaller index will be 'X
-            if (index < opp_index)
-                role = 'X';
-            else
-                role = 'O';
-            boardList[index][x][y] = role;
+            boardList[index][x][y] = roleList[index];
 
             // check win
             if (check_win(boardList[index], x, y))
@@ -305,11 +309,12 @@ void *thread_proc(void *arg)
     client[index] = -1;
     free(usernameList[index]);
     usernameList[index] = NULL;
-
+    roleList[index] = NULL;
     if (opponentList[index] != -1)
     {
         send(client[opp_index], OPP_DISCONNECTED, strlen(OPP_DISCONNECTED), 0);
         opponentList[index] = opponentList[opp_index] = -1;
+        roleList[opp_index] = NULL;
         free(boardList[index]); // boardList[opp_index] & boardList[index] point to the same location
     }
 
@@ -397,7 +402,8 @@ int main(int argc, char **argv)
             opponentList[count] = -1;
             boardList = (char ***)realloc(boardList, (count + 1) * sizeof(char **));
             boardList[count] = NULL;
-
+            roleList = (char *)realloc(roleList, (count + 1) * sizeof(char));
+            roleList[count] = NULL;
             pthread_t tid;
             int *arg = (int *)calloc(1, sizeof(int));
             *arg = count;
