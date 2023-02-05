@@ -284,13 +284,13 @@ int checkCode(int code, char* buffer)
             printf("TIMED OUT: Cannot find any player\n");
             pressEnterToContinue();
             return -1;
-        // return 1 means yourReturn = 1
+        // return 1 means your turn = 1
         case 220:
             yourRole = 'X';
             oppRole = 'O';
             printf("Player found: %s, you are X\n", oppUsername);
             return 1;
-        // return 0 means yourReturn = 0
+        // return 0 means your turn = 0
         case 221:
             yourRole = 'O';
             oppRole = 'X';
