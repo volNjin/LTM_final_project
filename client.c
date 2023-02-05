@@ -339,7 +339,7 @@ void newGame()
     int yourTurn;
 
     code = findPlayer();
-    int tmp = checkCode(code, buffer);
+    int tmp = checkCode(code, buffer); // Get the code 
     if(tmp == -1)
     {
         return;
@@ -368,6 +368,7 @@ void newGame()
         else
         {
             yourTurn = 1;
+            printf("Opponent turn");
         }
 
         recv(sockfd, buffer, sizeof(buffer), 0);
@@ -383,7 +384,7 @@ int mainMenu()
     printf("+-------Caro game server-------+\n");
     printf("\t1. Login\n");
     printf("\t2. Register\n");
-    printf("\t3. Quit\n");
+    printf("\t3. Exit\n");
     printf("+------------------------------+\n");
     printf("\nSelect: ");
     while (1)
@@ -398,6 +399,7 @@ int mainMenu()
     return option;
 }
 
+// Logged-in menu
 int getMenuOption()
 {
     int option;
@@ -405,7 +407,7 @@ int getMenuOption()
     printf("Logged in as %s\n", username);
     printf("-------- MENU --------\n");
     printf("1. New Game\n");
-    printf("2. Quit\n");
+    printf("2. Logout\n");
     printf("\nSelect: ");
     while (1)
     {
@@ -419,6 +421,7 @@ int getMenuOption()
     return option;
 }
 
+// When choose login
 void dialogLoggedIn()
 {
     login();
@@ -434,6 +437,7 @@ void dialogLoggedIn()
         newGame();
     }
 }
+
 void start()
 {
     while (1)

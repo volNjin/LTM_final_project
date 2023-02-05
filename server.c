@@ -68,6 +68,7 @@ int main(int argc, char **argv)
         return 0;
     }
     Port = atoi(argv[1]);
+
     signal(SIGINT, signal_handler);
     pthread_mutex_init(&mutex, NULL);
 
@@ -120,6 +121,7 @@ int main(int argc, char **argv)
     }
 }
 
+// Add player with index to finding queue
 void enqueue(int index)
 {
     findingQueue = (int *)realloc(findingQueue, (queue_size + 1) * sizeof(int));
@@ -127,6 +129,7 @@ void enqueue(int index)
     queue_size++;
 }
 
+// Get the player at top of finding queue
 int dequeue()
 {
     int top = *findingQueue;
@@ -136,6 +139,7 @@ int dequeue()
     return top;
 }
 
+// Check if the last move is the won move
 int check_win(char **board, int x, int y)
 {
     int count;
@@ -189,18 +193,20 @@ int check_win(char **board, int x, int y)
     return 0;
 }
 
+// Handle register request
 void handleRegister(char *buffer, int cfd)
 {
     char *request = strtok(buffer, " ");
     char *username = strtok(NULL, token);
     char *password = strtok(NULL, token);
 
-    if (isValid(username, NULL))
+    // Check if username is valid or not
+    if (isValid(username, NULL)) // If username is signed up => register fail
     {
         printf("%s", REGISTER_FAIL);
         send(cfd, REGISTER_FAIL, sizeof(REGISTER_FAIL), 0);
     }
-    else
+    else // Else => resgister
     {
         registerUser(username, password);
         printf("%s", REGISTER_SUCCESS);
@@ -208,29 +214,36 @@ void handleRegister(char *buffer, int cfd)
     }
 }
 
+// Handle login request
 int handleLogin(char *buffer, int cfd, int index)
 {
     char *request = strtok(buffer, " ");
     char *username = strtok(NULL, token);
     char *password = strtok(NULL, token);
+
+    // Check if username and password is signed up or not
     if (isValid(username, password))
     {
-        int isNameDuplicate = 0;
+        int isLogged = 0;
         for (int i = 0; i < count; i++)
         {
             if (usernameList[i] == NULL)
                 continue;
+
+            // Check if account is logged in
             if (strcmp(username, usernameList[i]) == 0)
             {
                 printf("%s", LOGGED_IN_ACC);
-                send(cfd, LOGGED_IN_ACC, strlen(LOGGED_IN_ACC), 0);
-                isNameDuplicate = 1;
+                send(cfd, LOGGED_IN_ACC, strlen(LOGGED_IN_ACC), 0); // Send notice
+                isLogged = 1;
                 break;
             }
         }
-        if (isNameDuplicate)
+        if (isLogged)
             return 1;
-        usernameList[index] = (char *)realloc(usernameList[index], strlen(username) + 1);
+
+        // Login success
+        usernameList[index] = (char *)realloc(usernameList[index], strlen(username) + 1); 
         strcpy(usernameList[index], username);
         send(cfd, LOGIN_SUCCESS, sizeof(LOGIN_SUCCESS), 0);
         return 0;
@@ -241,6 +254,7 @@ int handleLogin(char *buffer, int cfd, int index)
     }
 }
 
+// Create empty board with size
 void initBoard(char **board)
 {
     for (int i = 0; i < SIZE; i++)
@@ -257,6 +271,7 @@ void initBoard(char **board)
     }
 }
 
+// Main thread: receive and handle requests from client
 void *thread_proc(void *arg)
 {
     int index = *((int *)arg);
@@ -274,11 +289,11 @@ void *thread_proc(void *arg)
         strcpy(buffer, rtrim(buffer));
         printf("%s\n", buffer);
 
-        if (strncmp(buffer, "REGISTER ", 9) == 0)
+        if (strncmp(buffer, "REGISTER ", 9) == 0) // Register request
         {
             handleRegister(buffer, cfd);
         }
-        else if (strncmp(buffer, "LOGIN ", 6) == 0)
+        else if (strncmp(buffer, "LOGIN ", 6) == 0) // Login request
         {
             int tmp = handleLogin(buffer, cfd, index);
             if (tmp == 1)
@@ -286,7 +301,7 @@ void *thread_proc(void *arg)
                 continue;
             }
         }
-        else if (strncmp(buffer, "FIND", 4) == 0)
+        else if (strncmp(buffer, "FIND", 4) == 0)   // Find opponent request
         {
             pthread_mutex_lock(&mutex);
             enqueue(index);
@@ -300,12 +315,12 @@ void *thread_proc(void *arg)
                 sleep(1);
             }
 
-            // timed out on finding
+            // Timed out on finding
             if (opponentList[index] == -1)
             {
                 int recheck_after_lock_flag = 0;
                 pthread_mutex_lock(&mutex);
-                // check again in case player found right before lock, otherwise the current client is still top of queue
+                // Check again in case player found right before lock, otherwise the current client is still top of queue
                 if (opponentList[index] == -1)
                 {
                     recheck_after_lock_flag = 1;
@@ -317,7 +332,7 @@ void *thread_proc(void *arg)
                     continue;
             }
 
-            // opponent found
+            // Opponent found
             opp_index = opponentList[index];
 
             char find_resp[64];
@@ -358,7 +373,7 @@ void *thread_proc(void *arg)
                 send(cfd, find_resp, strlen(find_resp), 0);
             }
         }
-        else if (strncmp(buffer, "MOVE ", 5) == 0)
+        else if (strncmp(buffer, "MOVE ", 5) == 0)  // Move x y request
         {
             int x, y;
             char opp_move_resp[32];
@@ -369,16 +384,16 @@ void *thread_proc(void *arg)
 
             boardList[index][x][y] = roleList[index];
 
-            // check win
+            // Check win
             if (check_win(boardList[index], x, y))
             {
                 printf("WIN\n");
                 char opp_won_resp[32];
                 sprintf(opp_won_resp, OPP_WON, x, y);
                 send(cfd, YOU_WON, strlen(YOU_WON), 0);
-                send(client[opp_index], opp_won_resp, strlen(opp_won_resp), 0);
+                send(client[opp_index], opp_won_resp, strlen(opp_won_resp), 0); // Send you won response to opponent
 
-                // free memory
+                // Free memory
                 opponentList[index] = opponentList[opp_index] = -1;
                 free(boardList[index]);
                 boardList[index] = boardList[opp_index] = NULL;
@@ -415,13 +430,15 @@ void *thread_proc(void *arg)
     return NULL;
 }
 
+// Match 2 players at top of queue
 void *pair_player_proc()
 {
     while (1)
     {
         if (queue_size >= 2)
         {
-            pthread_mutex_lock(&mutex); 
+            // Lock to use data => other threads can't change data
+            pthread_mutex_lock(&mutex);
             int player1 = dequeue();
             int player2 = dequeue();
             pthread_mutex_unlock(&mutex);
@@ -433,6 +450,7 @@ void *pair_player_proc()
     }
 }
 
+// Free client array and exit
 void signal_handler(int sig)
 {
     pthread_mutex_destroy(&mutex);
