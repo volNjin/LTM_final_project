@@ -52,7 +52,7 @@ void draw_board()
             if (board[i][j] == yourRole)
                 printf(" \033[0;33m%c\033[0m ", board[i][j]);
             else if (board[i][j] == oppRole)
-                printf(" \033[0;31m%c\033[0m ", board[i][j]);
+                printf(" \033[0;36m%c\033[0m ", board[i][j]);
             else
                 printf(" %c ", board[i][j]);
             if (j != SIZE - 1)
