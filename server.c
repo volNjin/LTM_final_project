@@ -252,7 +252,7 @@ void *thread_proc(void *arg)
             initBoard(board);
 
             boardList[index] = boardList[opp_index] = board;
-            if(roleList[index] == NULL && roleList[opp_index] == NULL){
+            if(roleList[index] == NULL || roleList[opp_index] == NULL){
                 srand(time(0));
                 int coin = rand()%2;
                 if(coin == 0){
@@ -302,6 +302,8 @@ void *thread_proc(void *arg)
                 opponentList[index] = opponentList[opp_index] = -1;
                 free(boardList[index]);
                 boardList[index] = boardList[opp_index] = NULL;
+                roleList[index] = NULL;
+                roleList[opp_index] = NULL;
                 continue;
             }
 
