@@ -60,7 +60,6 @@ int dequeue()
     return top;
 }
 
-
 int check_win(char **board, int x, int y)
 {
     int count;
@@ -78,7 +77,7 @@ int check_win(char **board, int x, int y)
     i = x + 1;
     while (i < SIZE && board[i++][j] == role)
         count++;
-    if (count >= 5 && !((i >= SIZE) || (i-7 < 0) || (board[i-1][j] == oppRole && board[i-7][j] == oppRole)))
+    if (count >= 5 && !((i >= SIZE) || (i - 7 < 0) || (board[i - 1][j] == oppRole && board[i - 7][j] == oppRole)))
         return 1;
 
     // check vertical
@@ -88,7 +87,7 @@ int check_win(char **board, int x, int y)
     j = y + 1;
     while (j < SIZE && board[i][j++] == role)
         count++;
-    if (count >= 5 && !((j >= SIZE) || (j-7 < 0) || (board[i][j-1] == oppRole && board[i][j-7] == oppRole)))
+    if (count >= 5 && !((j >= SIZE) || (j - 7 < 0) || (board[i][j - 1] == oppRole && board[i][j - 7] == oppRole)))
         return 1;
 
     // check diagonal '\'
@@ -98,7 +97,7 @@ int check_win(char **board, int x, int y)
     i = x + 1, j = y + 1;
     while (i < SIZE && j < SIZE && board[i++][j++] == role)
         count++;
-    if (count >= 5 && !((i >= SIZE) || (i-7 < 0) || (j >= SIZE) || (j-7 < 0) || (board[i-1][j-1] == oppRole && board[i-7][j-7] == oppRole)))
+    if (count >= 5 && !((i >= SIZE) || (i - 7 < 0) || (j >= SIZE) || (j - 7 < 0) || (board[i - 1][j - 1] == oppRole && board[i - 7][j - 7] == oppRole)))
         return 1;
 
     // check diagonal '/'
@@ -108,13 +107,13 @@ int check_win(char **board, int x, int y)
     i = x + 1, j = y - 1;
     while (i < SIZE && j >= 0 && board[i++][j--] == role)
         count++;
-    if (count >= 5 && !((i >= SIZE) || (i-7 < 0) || (j+7 >= SIZE) || (j < 0) || (board[i-1][j+1] == oppRole && board[i-7][j+7] == oppRole)))
+    if (count >= 5 && !((i >= SIZE) || (i - 7 < 0) || (j + 7 >= SIZE) || (j < 0) || (board[i - 1][j + 1] == oppRole && board[i - 7][j + 7] == oppRole)))
         return 1;
 
     return 0;
 }
 
-void handleRegister(char* buffer, int cfd)
+void handleRegister(char *buffer, int cfd)
 {
     char *request = strtok(buffer, " ");
     char *username = strtok(NULL, token);
@@ -133,7 +132,7 @@ void handleRegister(char* buffer, int cfd)
     }
 }
 
-int handleLogin(char* buffer, int cfd, int index)
+int handleLogin(char *buffer, int cfd, int index)
 {
     char *request = strtok(buffer, " ");
     char *username = strtok(NULL, token);
@@ -166,7 +165,7 @@ int handleLogin(char* buffer, int cfd, int index)
     }
 }
 
-void initBoard(char** board)
+void initBoard(char **board)
 {
     for (int i = 0; i < SIZE; i++)
     {
@@ -200,12 +199,12 @@ void *thread_proc(void *arg)
 
         if (strncmp(buffer, "REGISTER ", 9) == 0)
         {
-            handleRegister(buffer,cfd);
+            handleRegister(buffer, cfd);
         }
         else if (strncmp(buffer, "LOGIN ", 6) == 0)
         {
             int tmp = handleLogin(buffer, cfd, index);
-            if(tmp == 1)
+            if (tmp == 1)
             {
                 continue;
             }
@@ -252,14 +251,17 @@ void *thread_proc(void *arg)
             initBoard(board);
 
             boardList[index] = boardList[opp_index] = board;
-            if(roleList[index] == NULL || roleList[opp_index] == NULL){
+            if (roleList[index] == NULL || roleList[opp_index] == NULL)
+            {
                 srand(time(0));
-                int coin = rand()%2;
-                if(coin == 0){
+                int coin = rand() % 2;
+                if (coin == 0)
+                {
                     roleList[index] = 'X';
                     roleList[opp_index] = 'O';
                 }
-                else {
+                else
+                {
                     roleList[index] = 'O';
                     roleList[opp_index] = 'X';
                 }
