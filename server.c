@@ -50,7 +50,7 @@ int check_win(char **board, int x, int y);
 void handleRegister(char *buffer, int cfd);
 int handleLogin(char *buffer, int cfd, int index);
 void initBoard(char **board);
-void *thread_proc(void *arg);
+void *main_thread(void *arg);
 void *pair_player_proc();
 void signal_handler(int sig);
 
@@ -115,7 +115,7 @@ int main(int argc, char **argv)
             pthread_t tid;
             int *arg = (int *)calloc(1, sizeof(int));
             *arg = count;
-            pthread_create(&tid, NULL, &thread_proc, arg);
+            pthread_create(&tid, NULL, &main_thread, arg);
             count++;
         }
     }
@@ -272,7 +272,7 @@ void initBoard(char **board)
 }
 
 // Main thread: receive and handle requests from client
-void *thread_proc(void *arg)
+void *main_thread(void *arg)
 {
     int index = *((int *)arg);
     int cfd = client[index];
